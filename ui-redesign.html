@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UI Redesign Project — Lumina Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ─── DESIGN TOKENS ─────────────────────────────────────── */
+  :root {
+    --ink:       #0F0E0C;
+    --paper:     #F8F5F0;
+    --mid:       #6B6560;
+    --rule:      #E2DDD8;
+    --accent:    #C94F2C;   /* burnt sienna — distinct from default terracotta */
+    --accent2:   #2C6EC9;   /* cobalt — counterpoint */
+    --pass:      #2DA06A;
+    --warn:      #E09A1A;
+    --fail:      #C94F2C;
+    --white:     #FFFFFF;
+    --card:      #FDFCFA;
+
+    --f-display: 'DM Serif Display', Georgia, serif;
+    --f-body:    'Inter', system-ui, sans-serif;
+    --f-mono:    'JetBrains Mono', monospace;
+
+    --r: 6px;
+    --r-lg: 14px;
+    --shadow: 0 2px 12px rgba(15,14,12,.08);
+    --shadow-lg: 0 8px 32px rgba(15,14,12,.12);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--f-body);
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+
+  /* ─── NAV ────────────────────────────────────────────────── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(248,245,240,.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--rule);
+    padding: 0 24px;
+    display: flex; align-items: center; gap: 8px;
+    overflow-x: auto; white-space: nowrap;
+    height: 56px;
+  }
+  nav a {
+    font-size: 13px; font-weight: 500; letter-spacing: .02em;
+    color: var(--mid); text-decoration: none;
+    padding: 6px 14px; border-radius: 20px;
+    transition: all .18s;
+    flex-shrink: 0;
+  }
+  nav a:hover, nav a.active { color: var(--ink); background: var(--rule); }
+  .nav-title { font-family: var(--f-display); font-size: 17px; color: var(--ink); margin-right: 16px; flex-shrink: 0; }
+
+  /* ─── SECTIONS ───────────────────────────────────────────── */
+  section { max-width: 1080px; margin: 0 auto; padding: 72px 24px; }
+  section + section { border-top: 1px solid var(--rule); }
+
+  .section-label {
+    font-family: var(--f-mono); font-size: 11px; font-weight: 500;
+    letter-spacing: .12em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 10px;
+  }
+  h1 { font-family: var(--f-display); font-size: clamp(34px, 5vw, 56px); line-height: 1.1; }
+  h2 { font-family: var(--f-display); font-size: clamp(26px, 3.5vw, 38px); line-height: 1.2; margin-bottom: 32px; }
+  h3 { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
+  p { color: var(--mid); max-width: 62ch; }
+
+  /* ─── HERO ───────────────────────────────────────────────── */
+  .hero { padding: 88px 24px 64px; border-top: none; }
+  .hero-eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .hero-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .hero-meta { font-family: var(--f-mono); font-size: 12px; color: var(--mid); letter-spacing: .08em; }
+  .hero h1 { margin-bottom: 20px; }
+  .hero h1 em { font-style: italic; color: var(--accent); }
+  .hero p { font-size: 17px; line-height: 1.65; margin-bottom: 36px; }
+  .hero-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tag {
+    font-size: 12px; font-weight: 500;
+    padding: 5px 12px; border-radius: 20px;
+    border: 1px solid var(--rule); color: var(--mid);
+    background: var(--white);
+  }
+
+  /* ─── HEURISTIC EVALUATION ───────────────────────────────── */
+  .heuristic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px; margin-top: 32px;
+  }
+  .heuristic-card {
+    background: var(--card); border: 1px solid var(--rule);
+    border-radius: var(--r-lg); padding: 22px;
+    transition: box-shadow .2s;
+  }
+  .heuristic-card:hover { box-shadow: var(--shadow); }
+  .h-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+  .severity {
+    font-family: var(--f-mono); font-size: 10px; font-weight: 500;
+    letter-spacing: .06em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 4px;
+  }
+  .sev-high { background: #FDECEA; color: var(--fail); }
+  .sev-med  { background: #FEF6E4; color: var(--warn); }
+  .sev-low  { background: #E8F7EE; color: var(--pass); }
+  .h-num { font-family: var(--f-mono); font-size: 22px; font-weight: 500; color: var(--rule); }
+  .heuristic-card h3 { font-size: 14px; color: var(--ink); margin-bottom: 6px; }
+  .heuristic-card p { font-size: 13px; color: var(--mid); max-width: none; }
+  .fix-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 14px; font-size: 12px; font-weight: 500; color: var(--accent2);
+    background: #EBF3FD; padding: 5px 10px; border-radius: 4px;
+  }
+
+  /* ─── MOOD BOARD ─────────────────────────────────────────── */
+  .mood-board {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-rows: 220px 180px;
+    gap: 12px; margin-top: 32px; border-radius: var(--r-lg); overflow: hidden;
+  }
+  .mood-cell {
+    display: flex; align-items: flex-end; padding: 20px;
+    position: relative; overflow: hidden;
+  }
+  .mood-cell span {
+    font-size: 12px; font-weight: 500; color: rgba(255,255,255,.85);
+    background: rgba(0,0,0,.25); padding: 4px 10px; border-radius: 4px;
+    backdrop-filter: blur(4px); position: relative; z-index: 1;
+  }
+  .m1 {
+    grid-row: 1 / 3;
+    background: linear-gradient(145deg, #1a1208 0%, #3d2b10 50%, #C94F2C 100%);
+  }
+  .m1::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      45deg, transparent, transparent 20px,
+      rgba(255,255,255,.03) 20px, rgba(255,255,255,.03) 21px
+    );
+  }
+  .m2 { background: linear-gradient(135deg, #0F0E0C, #2C3E50); }
+  .m3 { background: linear-gradient(135deg, #F8F5F0, #E8DDD0); }
+  .m3 span { color: var(--mid) !important; background: rgba(0,0,0,.08) !important; }
+  .m4 { background: linear-gradient(135deg, #C94F2C, #E8732A); }
+  .m5 { background: linear-gradient(135deg, #2C6EC9, #3B8FEA); }
+
+  /* ─── STYLE GUIDE ────────────────────────────────────────── */
+  .sg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 32px; }
+  .sg-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-top: 32px; }
+
+  .palette-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 32px; }
+  .swatch {
+    width: 64px; text-align: center;
+  }
+  .swatch-color {
+    width: 64px; height: 64px; border-radius: var(--r);
+    border: 1px solid rgba(0,0,0,.08); margin-bottom: 6px;
+  }
+  .swatch span { font-family: var(--f-mono); font-size: 10px; color: var(--mid); }
+
+  .type-sample { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--rule); }
+  .type-sample:last-child { border-bottom: none; }
+  .type-label { font-family: var(--f-mono); font-size: 10px; color: var(--mid); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
+
+  .component-demo {
+    background: var(--card); border: 1px solid var(--rule);
+    border-radius: var(--r-lg); padding: 28px; margin-top: 16px;
+  }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+  .btn {
+    font-family: var(--f-body); font-size: 13px; font-weight: 600;
+    padding: 9px 20px; border-radius: var(--r); cursor: pointer;
+    border: none; letter-spacing: .01em; transition: all .15s;
+  }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #b04425; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(201,79,44,.35); }
+  .btn-secondary { background: transparent; color: var(--ink); border: 1.5px solid var(--ink); }
+  .btn-secondary:hover { background: var(--ink); color: var(--paper); }
+  .btn-ghost { background: transparent; color: var(--mid); }
+  .btn-ghost:hover { color: var(--ink); background: var(--rule); }
+
+  .input-demo input {
+    font-family: var(--f-body); font-size: 14px;
+    width: 100%; padding: 10px 14px;
+    border: 1.5px solid var(--rule); border-radius: var(--r);
+    background: var(--white); color: var(--ink); outline: none;
+    transition: border-color .15s;
+    margin-bottom: 10px;
+  }
+  .input-demo input:focus { border-color: var(--accent2); }
+  .input-demo label { font-size: 12px; font-weight: 500; color: var(--mid); display: block; margin-bottom: 4px; }
+
+  /* ─── WIREFRAMES / MOCKUPS ───────────────────────────────── */
+  .mockup-tabs {
+    display: flex; gap: 4px; margin-bottom: 0;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 0;
+  }
+  .mtab {
+    font-size: 13px; font-weight: 500; color: var(--mid);
+    padding: 10px 18px; cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: all .15s; background: none; border-top: none; border-left: none; border-right: none;
+    font-family: var(--f-body);
+  }
+  .mtab:hover { color: var(--ink); }
+  .mtab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .mockup-panel { display: none; padding-top: 32px; }
+  .mockup-panel.active { display: block; }
+
+  /* Desktop mockup */
+  .desktop-frame {
+    background: #1a1a1a; border-radius: 12px 12px 8px 8px;
+    overflow: hidden; box-shadow: var(--shadow-lg);
+  }
+  .frame-bar {
+    background: #2d2d2d; height: 36px;
+    display: flex; align-items: center; gap: 7px; padding: 0 14px;
+  }
+  .dot-r { width: 12px; height: 12px; border-radius: 50%; background: #FF5F57; }
+  .dot-y { width: 12px; height: 12px; border-radius: 50%; background: #FEBC2E; }
+  .dot-g { width: 12px; height: 12px; border-radius: 50%; background: #28C840; }
+  .url-bar {
+    flex: 1; height: 22px; background: #3d3d3d; border-radius: 5px;
+    margin: 0 16px; display: flex; align-items: center; padding: 0 10px;
+    font-family: var(--f-mono); font-size: 10px; color: #999;
+  }
+  .mock-site { background: var(--paper); }
+
+  /* Mock site nav */
+  .mock-nav {
+    background: rgba(248,245,240,.95); border-bottom: 1px solid var(--rule);
+    padding: 0 32px; height: 60px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .mock-logo { font-family: var(--f-display); font-size: 20px; }
+  .mock-links { display: flex; gap: 24px; }
+  .mock-links a { font-size: 13px; font-weight: 500; color: var(--mid); text-decoration: none; }
+  .mock-cta { background: var(--accent); color: white; font-size: 13px; font-weight: 600; padding: 8px 18px; border-radius: var(--r); cursor: pointer; border: none; font-family: var(--f-body); }
+
+  /* Mock hero section */
+  .mock-hero {
+    padding: 80px 32px 64px;
+    background: linear-gradient(160deg, var(--paper) 0%, #EDE5DA 100%);
+    position: relative; overflow: hidden;
+  }
+  .mock-hero::after {
+    content: '';
+    position: absolute; right: -60px; top: -60px;
+    width: 400px; height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(201,79,44,.08) 0%, transparent 70%);
+  }
+  .mock-hero-badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: white; border: 1px solid var(--rule);
+    padding: 5px 12px; border-radius: 20px; margin-bottom: 24px;
+    font-size: 12px; font-weight: 500; color: var(--mid);
+  }
+  .mock-hero-badge::before { content: '●'; color: var(--pass); font-size: 8px; }
+  .mock-hero h2 { font-size: 46px; line-height: 1.1; max-width: 560px; margin-bottom: 18px; }
+  .mock-hero h2 em { color: var(--accent); }
+  .mock-hero p { font-size: 16px; max-width: 460px; margin-bottom: 32px; }
+  .mock-hero-btns { display: flex; gap: 12px; }
+  .mock-hero-btns .btn { font-size: 14px; padding: 12px 24px; }
+
+  /* Mock cards */
+  .mock-cards {
+    padding: 56px 32px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+  }
+  .mock-card {
+    background: var(--white); border: 1px solid var(--rule); border-radius: 12px;
+    overflow: hidden; transition: all .2s;
+  }
+  .mock-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+  .mock-card-img {
+    height: 160px; display: flex; align-items: center; justify-content: center;
+    font-size: 36px;
+  }
+  .img1 { background: linear-gradient(135deg, #F0E6D8, #E8D5BE); }
+  .img2 { background: linear-gradient(135deg, #D8E8F0, #BED5E8); }
+  .img3 { background: linear-gradient(135deg, #E8D8F0, #D5BEE8); }
+  .mock-card-body { padding: 18px; }
+  .mock-card-body h4 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .mock-card-body p { font-size: 12px; color: var(--mid); max-width: none; }
+  .mock-card-footer { padding: 0 18px 16px; display: flex; justify-content: space-between; align-items: center; }
+  .price { font-family: var(--f-mono); font-size: 16px; font-weight: 500; color: var(--ink); }
+  .add-btn { font-size: 11px; font-weight: 600; background: var(--ink); color: white; padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer; font-family: var(--f-body); }
+
+  /* Mobile frame */
+  .mobile-frame {
+    width: 360px; margin: 0 auto;
+    background: #1a1a1a; border-radius: 44px; padding: 12px;
+    box-shadow: var(--shadow-lg);
+  }
+  .mobile-screen { background: var(--paper); border-radius: 34px; overflow: hidden; }
+  .mobile-notch {
+    height: 32px; background: #1a1a1a;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 0 0 18px 18px; margin: 0 80px 0;
+  }
+  .mobile-notch::after { content: ''; width: 80px; height: 14px; background: #333; border-radius: 8px; }
+  .mock-mobile-nav {
+    background: rgba(248,245,240,.95); border-bottom: 1px solid var(--rule);
+    padding: 0 20px; height: 52px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .hamburger { display: flex; flex-direction: column; gap: 4px; }
+  .hamburger span { width: 20px; height: 2px; background: var(--ink); border-radius: 1px; }
+  .mock-mobile-hero { padding: 32px 20px 28px; background: linear-gradient(160deg, var(--paper) 0%, #EDE5DA 100%); }
+  .mock-mobile-hero h3 { font-family: var(--f-display); font-size: 28px; line-height: 1.15; margin-bottom: 12px; }
+  .mock-mobile-hero h3 em { color: var(--accent); }
+  .mock-mobile-hero p { font-size: 13px; margin-bottom: 22px; max-width: none; }
+  .mock-mobile-cards { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+  .mock-mobile-card {
+    background: white; border: 1px solid var(--rule); border-radius: 12px;
+    display: flex; gap: 14px; overflow: hidden;
+  }
+  .mmc-img { width: 80px; height: 80px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .mmc-body { padding: 12px 12px 12px 0; flex: 1; }
+  .mmc-body h4 { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+  .mmc-body p { font-size: 11px; color: var(--mid); max-width: none; }
+  .mmc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+  .mmc-footer .price { font-size: 13px; }
+  .mmc-footer .add-btn { font-size: 10px; padding: 5px 10px; }
+
+  /* Mobile bottom nav */
+  .mobile-bottom-nav {
+    display: flex; justify-content: space-around; align-items: center;
+    padding: 12px 0 16px; border-top: 1px solid var(--rule); background: white;
+  }
+  .bnav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .bnav-item span:first-child { font-size: 18px; }
+  .bnav-item span:last-child { font-size: 9px; color: var(--mid); font-weight: 500; }
+  .bnav-item.active span:last-child { color: var(--accent); }
+
+  /* Before / After comparison */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px; }
+  .compare-card { border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--rule); }
+  .compare-label {
+    padding: 12px 18px; font-size: 12px; font-weight: 600; letter-spacing: .04em;
+    text-transform: uppercase; display: flex; align-items: center; gap: 8px;
+  }
+  .before-label { background: #FDECEA; color: var(--fail); }
+  .after-label { background: #E8F7EE; color: var(--pass); }
+  .compare-content { padding: 24px 18px; background: var(--card); }
+
+  /* OLD site simulation */
+  .old-site {
+    background: white; font-family: Arial, sans-serif;
+  }
+  .old-nav {
+    background: #003366; padding: 10px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .old-nav span { color: white; font-size: 18px; font-weight: bold; }
+  .old-nav-links a { color: #99bbdd; font-size: 12px; margin-left: 16px; text-decoration: none; }
+  .old-hero { background: #f0f0f0; padding: 40px 20px; text-align: center; }
+  .old-hero h2 { font-size: 28px; color: #003366; margin-bottom: 10px; }
+  .old-hero p { font-size: 13px; color: #666; margin-bottom: 20px; }
+  .old-btn { background: #ff6600; color: white; padding: 8px 16px; border: none; cursor: pointer; font-size: 12px; }
+  .old-cards { display: flex; gap: 0; }
+  .old-card { flex: 1; border: 1px solid #ccc; padding: 16px; text-align: center; }
+  .old-card h4 { font-size: 13px; color: #003366; margin-bottom: 8px; }
+  .old-card p { font-size: 11px; color: #666; }
+  .old-card button { margin-top: 10px; background: #ff6600; color: white; border: none; padding: 6px 12px; font-size: 11px; cursor: pointer; }
+
+  /* ─── RESPONSIVE ─────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    .sg-grid, .sg-grid-3 { grid-template-columns: 1fr; }
+    .heuristic-grid { grid-template-columns: 1fr; }
+    .mood-board { grid-template-columns: 1fr 1fr; grid-template-rows: auto; }
+    .m1 { grid-row: auto; }
+    .mock-cards { grid-template-columns: 1fr; padding: 32px 20px; }
+    .mock-hero h2 { font-size: 28px; }
+    .compare-grid { grid-template-columns: 1fr; }
+    .mobile-frame { width: 100%; max-width: 360px; }
+    .mock-links { display: none; }
+  }
+
+  /* ─── SPACING UTILS ──────────────────────────────────────── */
+  .mt-8 { margin-top: 8px; }
+  .mt-16 { margin-top: 16px; }
+  .mt-24 { margin-top: 24px; }
+  .mt-32 { margin-top: 32px; }
+  .mb-0 { margin-bottom: 0; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  /* scroll reveal */
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity .5s, transform .5s; }
+  .reveal.visible { opacity: 1; transform: none; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="nav-title">Lumina UI Redesign</span>
+  <a href="#evaluation" class="active">Heuristics</a>
+  <a href="#moodboard">Mood Board</a>
+  <a href="#styleguide">Style Guide</a>
+  <a href="#mockups">Mockups</a>
+  <a href="#compare">Before / After</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero reveal">
+  <div class="hero-eyebrow">
+    <div class="hero-dot"></div>
+    <span class="hero-meta">UX/UI REDESIGN PROJECT · 2024</span>
+  </div>
+  <h1>Redesigning <em>Lumina</em><br>Studio's Website</h1>
+  <p style="margin-top:16px;">A full heuristic evaluation, visual identity system, and responsive high-fidelity redesign — from problem discovery to polished UI.</p>
+  <div class="hero-tags" style="margin-top:24px;">
+    <span class="tag">Heuristic Evaluation</span>
+    <span class="tag">Mood Board</span>
+    <span class="tag">Style Guide</span>
+    <span class="tag">High-Fidelity Mockup</span>
+    <span class="tag">Responsive Design</span>
+    <span class="tag">Visual Hierarchy</span>
+  </div>
+</section>
+
+<!-- ─── 1. HEURISTIC EVALUATION ─── -->
+<section id="evaluation" class="reveal">
+  <div class="section-label">Step 01 — Heuristic Evaluation</div>
+  <h2>Usability Issues Found</h2>
+  <p>Evaluated against Nielsen's 10 Usability Heuristics. 8 critical issues identified across navigation, visual hierarchy, and feedback.</p>
+
+  <div class="heuristic-grid">
+
+    <div class="heuristic-card">
+      <div class="h-header">
+        <div class="h-num">H1</div>
+        <span class="severity sev-high">High</span>
+      </div>
+      <h3>No Visual Hierarchy</h3>
+      <p>All text elements are nearly the same size. Users can't distinguish headings from body copy or CTAs at a glance.</p>
+      <div class="fix-pill">→ Fix: Clear type scale + weight contrast</div>
+    </div>
+
+    <div class="heuristic-card">
+      <div class="h-header">
+        <div class="h-num">H2</div>
+        <span class="severity sev-high">High</span>
+      </div>
+      <h3>Inconsistent CTA Buttons</h3>
+      <p>3 different button styles used with no pattern. Some are links, some are inputs — users are confused about what's clickable.</p>
+      <div class="fix-pill">→ Fix: Unified button component system</div>
+    </div>
+
+    <div class="heuristic-card">
+      <div class="h-header">
+        <div class="h-num">H3</div>
+        <span class="severity sev-high">High</span>
+      </div>
+      <h3>Not Mobile Responsive</h3>
+      <p>Layout breaks at &lt;768px. Cards overflow, text gets clipped, navigation becomes unusable on touch devices.</p>
+      <div class="fix-pill">→ Fix: Mobile-first grid layout</div>
+    </div>
+
+    <div class="heuristic-card">
+      <div class="h-header">
+        <div class="h-num">H4</div>
+        <span class="severity sev-med">Medium</span>
+      </div>
+      <h3>Poor Colour Contrast</h3>
+      <p>Grey text on white background fails WCAG AA (ratio 2.8:1). Body text is unreadable for low-vision users.</p>
+      <div class="fix-pill">→ Fix: 4.5:1 minimum contrast ratio</div>
+    </div>
+
+    <div class="heuristic-card">
+      <div class="h-header">
+        <div class="h-num">H5</div>
+        <span class="severity sev-med">Medium</span>
+      </div>
+      <h3>No System Feedback</h3>
+      <p>Form submissions show no confirmation. Add-to-cart action has no visual response. Users don't know if actions worked.</p>
+      <div class="fix-pill">→ Fix: Toast notifications + hover states</div>
+    </div>
+
+    <div class="heuristic-card">
+      <div class="h-header">
+        <div class="h-num">H6</div>
+        <span class="severity sev-med">Medium</span>
+      </div>
+      <h3>Cluttered Navigation</h3>
+      <p>17 navigation links with no grouping or hierarchy. Users face paradox of choice and can't find key pages quickly.</p>
+      <div class="fix-pill">→ Fix: 5 primary links + dropdown groups</div>
+    </div>
+
+    <div class="heuristic-card">
+      <div class="h-header">
+        <div class="h-num">H7</div>
+        <span class="severity sev-low">Low</span>
+      </div>
+      <h3>No Empty States</h3>
+      <p>Search with no results shows a blank white page with no explanation or next-step guidance for the user.</p>
+      <div class="fix-pill">→ Fix: Illustrated empty state + suggestions</div>
+    </div>
+
+    <div class="heuristic-card">
+      <div class="h-header">
+        <div class="h-num">H8</div>
+        <span class="severity sev-low">Low</span>
+      </div>
+      <h3>Inconsistent Spacing</h3>
+      <p>Padding values range from 3px to 47px with no grid. Dense sections next to airy ones feel unfinished and untrustworthy.</p>
+      <div class="fix-pill">→ Fix: 8pt spacing grid throughout</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ─── 2. MOOD BOARD ─── -->
+<section id="moodboard" class="reveal">
+  <div class="section-label">Step 02 — Mood Board</div>
+  <h2>Visual Direction</h2>
+  <p>Warm craftsmanship meets modern minimalism. Inspired by high-end editorial photography and artisan material textures — human, tactile, but precise.</p>
+
+  <div class="mood-board">
+    <div class="mood-cell m1">
+      <span>Dark Ink + Warm Grain</span>
+    </div>
+    <div class="mood-cell m2">
+      <span>Deep Contrast</span>
+    </div>
+    <div class="mood-cell m3">
+      <span>Warm Paper Tones</span>
+    </div>
+    <div class="mood-cell m4">
+      <span>Burnt Sienna Accent</span>
+    </div>
+    <div class="mood-cell m5">
+      <span>Cobalt Counter-accent</span>
+    </div>
+  </div>
+
+  <div class="mt-32">
+    <h3>Design Keywords</h3>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;">
+      <span class="tag">Editorial</span>
+      <span class="tag">Tactile</span>
+      <span class="tag">Warm Precision</span>
+      <span class="tag">Confident</span>
+      <span class="tag">Unhurried</span>
+      <span class="tag">Craft-forward</span>
+      <span class="tag">Human-scale</span>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 3. STYLE GUIDE ─── -->
+<section id="styleguide" class="reveal">
+  <div class="section-label">Step 03 — Style Guide</div>
+  <h2>Design System</h2>
+
+  <!-- Palette -->
+  <h3>Colour Palette</h3>
+  <div class="palette-row mt-16">
+    <div class="swatch">
+      <div class="swatch-color" style="background:#0F0E0C;"></div>
+      <span>#0F0E0C<br>Ink</span>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#F8F5F0;"></div>
+      <span>#F8F5F0<br>Paper</span>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#6B6560;"></div>
+      <span>#6B6560<br>Midtone</span>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#E2DDD8;"></div>
+      <span>#E2DDD8<br>Rule</span>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#C94F2C;"></div>
+      <span>#C94F2C<br>Sienna</span>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#2C6EC9;"></div>
+      <span>#2C6EC9<br>Cobalt</span>
+    </div>
+  </div>
+
+  <!-- Typography -->
+  <div class="sg-grid mt-32">
+    <div>
+      <h3>Typography Scale</h3>
+      <div class="type-sample mt-16">
+        <div class="type-label">Display — DM Serif Display, 56px</div>
+        <div style="font-family:'DM Serif Display',serif; font-size:clamp(28px,4vw,48px); line-height:1.1;">Craft meets<br><em style="color:var(--accent);">clarity.</em></div>
+      </div>
+      <div class="type-sample">
+        <div class="type-label">Heading — DM Serif Display, 32px</div>
+        <div style="font-family:'DM Serif Display',serif; font-size:28px;">Our Studio Work</div>
+      </div>
+      <div class="type-sample">
+        <div class="type-label">Body — Inter 400, 15px / 1.65</div>
+        <div style="font-size:15px; color:var(--mid);">We design digital experiences that feel inevitable — where every interaction earns the user's trust through consistency and care.</div>
+      </div>
+      <div class="type-sample">
+        <div class="type-label">Label — Inter 500, 12px / .08em tracking</div>
+        <div style="font-size:12px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--mid);">Section Label</div>
+      </div>
+      <div class="type-sample">
+        <div class="type-label">Mono — JetBrains Mono, 13px</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--mid);">#C94F2C · $price · version 2.0</div>
+      </div>
+    </div>
+
+    <div>
+      <h3>Spacing Grid (8pt base)</h3>
+      <div class="component-demo mt-16" style="display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:8px; height:8px; background:var(--accent); border-radius:2px;"></div>
+          <span style="font-family:var(--f-mono);font-size:12px;">4px — micro (icon gap)</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:16px; height:8px; background:var(--accent); border-radius:2px;"></div>
+          <span style="font-family:var(--f-mono);font-size:12px;">8px — xs (pill padding)</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:32px; height:8px; background:var(--accent); border-radius:2px;"></div>
+          <span style="font-family:var(--f-mono);font-size:12px;">16px — sm (card inner)</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:48px; height:8px; background:var(--accent2); border-radius:2px;"></div>
+          <span style="font-family:var(--f-mono);font-size:12px;">24px — md (section gap)</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:80px; height:8px; background:var(--accent2); border-radius:2px;"></div>
+          <span style="font-family:var(--f-mono);font-size:12px;">40px — lg (section pad)</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:128px; height:8px; background:var(--accent2); border-radius:2px;"></div>
+          <span style="font-family:var(--f-mono);font-size:12px;">72px — xl (section)</span>
+        </div>
+      </div>
+
+      <h3 class="mt-24">Border Radius</h3>
+      <div class="component-demo" style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+        <div style="width:48px;height:48px;background:var(--rule);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--f-mono);font-size:10px;">6px</div>
+        <div style="width:48px;height:48px;background:var(--rule);border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:var(--f-mono);font-size:10px;">14px</div>
+        <div style="width:48px;height:48px;background:var(--rule);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--f-mono);font-size:10px;">50%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Components -->
+  <h3 class="mt-32">UI Components</h3>
+  <div class="component-demo">
+    <div class="type-label mb-0" style="margin-bottom:14px;">Buttons</div>
+    <div class="btn-row">
+      <button class="btn btn-primary">Save Changes</button>
+      <button class="btn btn-secondary">Learn More</button>
+      <button class="btn btn-ghost">Cancel</button>
+    </div>
+    <div class="type-label" style="margin-bottom:14px; margin-top:20px;">Form Inputs</div>
+    <div class="input-demo" style="max-width:340px;">
+      <label>Email address</label>
+      <input type="email" placeholder="you@example.com">
+      <label>Message</label>
+      <input type="text" placeholder="How can we help?">
+    </div>
+    <div class="type-label" style="margin-bottom:14px; margin-top:20px;">Status States</div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <span class="severity sev-high">Error</span>
+      <span class="severity sev-med">Warning</span>
+      <span class="severity sev-low">Success</span>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 4. HIGH-FIDELITY MOCKUPS ─── -->
+<section id="mockups" class="reveal">
+  <div class="section-label">Step 04 — High-Fidelity Mockups</div>
+  <h2>Responsive Layouts</h2>
+
+  <div class="mockup-tabs">
+    <button class="mtab active" onclick="showTab('desktop')">🖥 Desktop</button>
+    <button class="mtab" onclick="showTab('mobile')">📱 Mobile</button>
+  </div>
+
+  <!-- DESKTOP -->
+  <div class="mockup-panel active" id="tab-desktop">
+    <div class="desktop-frame">
+      <div class="frame-bar">
+        <div class="dot-r"></div>
+        <div class="dot-y"></div>
+        <div class="dot-g"></div>
+        <div class="url-bar">lumina.studio</div>
+      </div>
+      <div class="mock-site">
+        <!-- nav -->
+        <div class="mock-nav">
+          <span class="mock-logo">Lumina</span>
+          <div class="mock-links">
+            <a href="#">Work</a>
+            <a href="#">Studio</a>
+            <a href="#">Services</a>
+            <a href="#">Journal</a>
+          </div>
+          <button class="mock-cta">Start a project</button>
+        </div>
+        <!-- hero -->
+        <div class="mock-hero">
+          <div class="mock-hero-badge">Currently taking projects for Q1 2025</div>
+          <h2>We design<br><em>digital things</em><br>that last.</h2>
+          <p>Brand, product, and web experiences for companies that care about the details as much as we do.</p>
+          <div class="mock-hero-btns">
+            <button class="btn btn-primary">See our work</button>
+            <button class="btn btn-secondary">Learn about us</button>
+          </div>
+        </div>
+        <!-- cards -->
+        <div class="mock-cards">
+          <div class="mock-card">
+            <div class="mock-card-img img1">🎨</div>
+            <div class="mock-card-body">
+              <h4>Brand Identity</h4>
+              <p>Visual systems that scale from a favicon to a billboard.</p>
+            </div>
+            <div class="mock-card-footer">
+              <span class="price">From ₹85k</span>
+              <button class="add-btn">Enquire</button>
+            </div>
+          </div>
+          <div class="mock-card">
+            <div class="mock-card-img img2">💻</div>
+            <div class="mock-card-body">
+              <h4>Web Design</h4>
+              <p>Responsive sites built with accessibility and performance in mind.</p>
+            </div>
+            <div class="mock-card-footer">
+              <span class="price">From ₹1.2L</span>
+              <button class="add-btn">Enquire</button>
+            </div>
+          </div>
+          <div class="mock-card">
+            <div class="mock-card-img img3">📱</div>
+            <div class="mock-card-body">
+              <h4>App UI/UX</h4>
+              <p>End-to-end product design from wireframe to handoff.</p>
+            </div>
+            <div class="mock-card-footer">
+              <span class="price">From ₹2.4L</span>
+              <button class="add-btn">Enquire</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE -->
+  <div class="mockup-panel" id="tab-mobile">
+    <div class="mobile-frame">
+      <div class="mobile-screen">
+        <div class="mobile-notch"></div>
+        <!-- mobile nav -->
+        <div class="mock-mobile-nav">
+          <span style="font-family:var(--f-display);font-size:17px;">Lumina</span>
+          <div class="hamburger">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+        <!-- mobile hero -->
+        <div class="mock-mobile-hero">
+          <div class="mock-hero-badge" style="font-size:11px;padding:4px 10px;">Open for projects</div>
+          <h3 style="margin-top:12px;">We design<br><em>things</em> that last.</h3>
+          <p>Brand, product & web — for companies that care about the details.</p>
+          <button class="btn btn-primary" style="width:100%; font-size:14px; padding:13px;">See our work</button>
+        </div>
+        <!-- mobile cards -->
+        <div class="mock-mobile-cards">
+          <div class="mock-mobile-card">
+            <div class="mmc-img img1">🎨</div>
+            <div class="mmc-body">
+              <h4>Brand Identity</h4>
+              <p>Visual systems from favicon to billboard</p>
+              <div class="mmc-footer">
+                <span class="price">From ₹85k</span>
+                <button class="add-btn">Enquire</button>
+              </div>
+            </div>
+          </div>
+          <div class="mock-mobile-card">
+            <div class="mmc-img img2">💻</div>
+            <div class="mmc-body">
+              <h4>Web Design</h4>
+              <p>Responsive, accessible, fast.</p>
+              <div class="mmc-footer">
+                <span class="price">From ₹1.2L</span>
+                <button class="add-btn">Enquire</button>
+              </div>
+            </div>
+          </div>
+          <div class="mock-mobile-card">
+            <div class="mmc-img img3">📱</div>
+            <div class="mmc-body">
+              <h4>App UI/UX</h4>
+              <p>Wireframe to final handoff.</p>
+              <div class="mmc-footer">
+                <span class="price">From ₹2.4L</span>
+                <button class="add-btn">Enquire</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- bottom nav -->
+        <div class="mobile-bottom-nav">
+          <div class="bnav-item active">
+            <span>🏠</span><span>Home</span>
+          </div>
+          <div class="bnav-item">
+            <span>💼</span><span>Work</span>
+          </div>
+          <div class="bnav-item">
+            <span>🔍</span><span>Explore</span>
+          </div>
+          <div class="bnav-item">
+            <span>👤</span><span>Studio</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 5. BEFORE / AFTER ─── -->
+<section id="compare" class="reveal">
+  <div class="section-label">Step 05 — Before / After</div>
+  <h2>The Transformation</h2>
+  <p>Side-by-side comparison showing the original problem areas vs. the redesigned solution.</p>
+
+  <div class="compare-grid">
+    <div class="compare-card">
+      <div class="compare-label before-label">✕ Before — Original Design</div>
+      <div class="compare-content old-site">
+        <div class="old-nav">
+          <span>LUMINA</span>
+          <div class="old-nav-links">
+            <a href="#">Home</a><a href="#">About</a><a href="#">Services</a>
+            <a href="#">Portfolio</a><a href="#">Team</a><a href="#">Blog</a>
+            <a href="#">FAQ</a><a href="#">Contact</a>
+          </div>
+        </div>
+        <div class="old-hero">
+          <h2>Welcome to Lumina Design Studio</h2>
+          <p>We provide design services for your business needs. Please browse our site to find out more information about what we do and how we can help.</p>
+          <button class="old-btn">CLICK HERE</button>
+        </div>
+        <div class="old-cards">
+          <div class="old-card">
+            <h4>SERVICE ONE</h4>
+            <p>Lorem ipsum dolor sit amet consectetur</p>
+            <button>Learn More</button>
+          </div>
+          <div class="old-card">
+            <h4>SERVICE TWO</h4>
+            <p>Lorem ipsum dolor sit amet consectetur</p>
+            <button>Learn More</button>
+          </div>
+          <div class="old-card">
+            <h4>SERVICE THREE</h4>
+            <p>Lorem ipsum dolor sit amet consectetur</p>
+            <button>Learn More</button>
+          </div>
+        </div>
+      </div>
+      <div style="padding:16px 18px; background:#FFF8F7; border-top:1px solid var(--rule);">
+        <div style="font-size:12px; color:var(--fail); font-weight:500; margin-bottom:8px;">Issues identified:</div>
+        <div style="font-size:12px; color:var(--mid); line-height:1.8;">
+          ✕ 8 nav links with no hierarchy<br>
+          ✕ Generic placeholder copy<br>
+          ✕ No visual hierarchy in layout<br>
+          ✕ Inconsistent button styles<br>
+          ✕ Not responsive<br>
+          ✕ Low contrast accessibility fail
+        </div>
+      </div>
+    </div>
+
+    <div class="compare-card">
+      <div class="compare-label after-label">✓ After — Redesigned</div>
+      <div class="compare-content">
+        <div class="mock-nav" style="border-radius:8px 8px 0 0; border:1px solid var(--rule); border-bottom:none;">
+          <span class="mock-logo" style="font-size:17px;">Lumina</span>
+          <div class="mock-links">
+            <a href="#" style="font-size:12px;">Work</a>
+            <a href="#" style="font-size:12px;">Services</a>
+            <a href="#" style="font-size:12px;">Journal</a>
+          </div>
+          <button class="mock-cta" style="font-size:12px; padding:6px 14px;">Start project</button>
+        </div>
+        <div class="mock-hero" style="border:1px solid var(--rule); border-top:none; border-radius:0 0 8px 8px; padding:32px;">
+          <div class="mock-hero-badge" style="font-size:11px;">Open for Q1 2025</div>
+          <h2 style="font-size:28px; margin-top:12px;">We design <em>digital things</em> that last.</h2>
+          <p style="font-size:13px; margin-bottom:18px;">Brand, product & web for companies that care about details.</p>
+          <div style="display:flex; gap:10px;">
+            <button class="btn btn-primary" style="font-size:12px; padding:8px 16px;">See our work</button>
+            <button class="btn btn-secondary" style="font-size:12px; padding:8px 16px;">Learn more</button>
+          </div>
+        </div>
+      </div>
+      <div style="padding:16px 18px; background:#F2FBF6; border-top:1px solid var(--rule);">
+        <div style="font-size:12px; color:var(--pass); font-weight:500; margin-bottom:8px;">Improvements made:</div>
+        <div style="font-size:12px; color:var(--mid); line-height:1.8;">
+          ✓ 4 focused nav links + CTA<br>
+          ✓ Real, confident copy voice<br>
+          ✓ Clear visual hierarchy (display → body)<br>
+          ✓ Unified button component system<br>
+          ✓ Mobile-first responsive layout<br>
+          ✓ WCAG AA contrast compliant
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- summary -->
+  <div class="component-demo mt-32" style="background:var(--ink); color:var(--paper); border-color:var(--ink);">
+    <div class="section-label" style="color:var(--accent);">Key Learnings</div>
+    <div class="sg-grid-3" style="margin-top:20px;">
+      <div>
+        <h3 style="color:white; font-size:15px; margin-bottom:8px;">Visual Hierarchy</h3>
+        <p style="color:#9B948E; font-size:13px; max-width:none;">Type scale + weight contrast guides the eye from headline → subtext → action. Every screen needs one primary focus point.</p>
+      </div>
+      <div>
+        <h3 style="color:white; font-size:15px; margin-bottom:8px;">Layout Design</h3>
+        <p style="color:#9B948E; font-size:13px; max-width:none;">An 8pt spacing grid eliminates visual noise. Consistent spacing creates rhythm — irregular spacing creates anxiety.</p>
+      </div>
+      <div>
+        <h3 style="color:white; font-size:15px; margin-bottom:8px;">Responsive Design</h3>
+        <p style="color:#9B948E; font-size:13px; max-width:none;">Mobile-first forces you to prioritise. If content works at 360px, adding more for desktop is straightforward. Reverse is painful.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="text-align:center; padding:48px 24px;">
+  <div class="section-label" style="text-align:center; display:block;">Project Complete</div>
+  <p style="text-align:center; max-width:none; font-size:15px;">Lumina Studio · UI Redesign Case Study · 2024</p>
+</section>
+
+<script>
+  // Tab switcher
+  function showTab(id) {
+    document.querySelectorAll('.mockup-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.mtab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.07 });
+  reveals.forEach(r => io.observe(r));
+
+  // Nav active highlight on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('nav a');
+  window.addEventListener('scroll', () => {
+    let cur = '';
+    sections.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 80) cur = s.id;
+    });
+    navLinks.forEach(a => {
+      a.classList.remove('active');
+      if (a.getAttribute('href') === '#' + cur) a.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>
