@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Prototype Studio</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --ink: #0D0D12;
+    --canvas: #F5F4F0;
+    --white: #FFFFFF;
+    --accent: #4F46E5;
+    --accent-light: #EEF2FF;
+    --accent-mid: #818CF8;
+    --success: #10B981;
+    --warning: #F59E0B;
+    --danger: #EF4444;
+    --muted: #6B7280;
+    --border: #E5E4E0;
+    --panel: #FAFAF8;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--canvas);
+    color: var(--ink);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── TOP NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: var(--ink);
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 24px; height: 52px;
+  }
+  .nav-logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px; font-weight: 700; color: var(--white);
+    letter-spacing: 0.08em; text-transform: uppercase;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .nav-logo .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-mid); display: inline-block; }
+  .nav-steps { display: flex; gap: 4px; margin-left: auto; }
+  .nav-step {
+    font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.4);
+    padding: 4px 12px; border-radius: 20px; cursor: pointer;
+    letter-spacing: 0.04em; transition: all 0.2s;
+  }
+  .nav-step.active { color: var(--white); background: rgba(255,255,255,0.12); }
+  .nav-step.done { color: var(--success); }
+  .nav-step:hover:not(.active) { color: rgba(255,255,255,0.7); }
+
+  /* ── LAYOUT ── */
+  .shell { display: flex; height: calc(100vh - 52px); margin-top: 52px; }
+
+  /* ── LEFT SIDEBAR ── */
+  .sidebar {
+    width: 260px; flex-shrink: 0;
+    background: var(--white);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    display: flex; flex-direction: column;
+  }
+  .sidebar-section { padding: 20px 16px 12px; }
+  .sidebar-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--muted); margin-bottom: 10px;
+  }
+  .screen-thumb {
+    border: 2px solid var(--border); border-radius: 8px;
+    overflow: hidden; cursor: pointer; margin-bottom: 8px;
+    transition: all 0.15s; position: relative;
+    background: var(--panel);
+  }
+  .screen-thumb:hover { border-color: var(--accent-mid); }
+  .screen-thumb.active { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+  .screen-thumb-inner { padding: 10px; min-height: 90px; }
+  .screen-thumb-name {
+    font-size: 11px; font-weight: 600; color: var(--ink);
+    padding: 6px 10px; border-top: 1px solid var(--border);
+    background: var(--white);
+  }
+  .thumb-bar { height: 6px; border-radius: 3px; background: var(--border); margin: 4px 0; }
+  .thumb-bar.accent { background: var(--accent-light); width: 60%; }
+  .thumb-bar.short { width: 40%; }
+  .thumb-rect { height: 28px; border-radius: 4px; background: var(--accent-light); margin: 6px 0; }
+  .thumb-rect.small { height: 16px; background: var(--border); }
+
+  .add-screen-btn {
+    margin: 0 16px 16px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    height: 38px; border: 2px dashed var(--border); border-radius: 8px;
+    font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer;
+    transition: all 0.15s;
+  }
+  .add-screen-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── MAIN CANVAS ── */
+  .canvas-area {
+    flex: 1; overflow: auto;
+    background: repeating-linear-gradient(0deg, transparent, transparent 24px, rgba(0,0,0,0.03) 24px, rgba(0,0,0,0.03) 25px),
+                repeating-linear-gradient(90deg, transparent, transparent 24px, rgba(0,0,0,0.03) 24px, rgba(0,0,0,0.03) 25px);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 40px 24px;
+    gap: 40px; flex-wrap: wrap;
+  }
+
+  /* ── PHONE FRAME ── */
+  .phone-wrapper { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .phone-label {
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .phone-frame {
+    width: 320px; height: 580px;
+    background: var(--ink); border-radius: 40px;
+    padding: 12px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.06),
+                0 24px 64px rgba(0,0,0,0.3),
+                inset 0 0 0 1px rgba(255,255,255,0.04);
+    position: relative;
+  }
+  .phone-notch {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    width: 100px; height: 24px; background: var(--ink);
+    border-radius: 0 0 14px 14px; z-index: 10;
+  }
+  .phone-screen {
+    width: 100%; height: 100%; border-radius: 30px;
+    background: var(--white); overflow: hidden; position: relative;
+  }
+
+  /* ── APP SCREENS ── */
+  .app-screen {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    transform: translateX(30px);
+  }
+  .app-screen.active {
+    opacity: 1; pointer-events: all; transform: translateX(0);
+  }
+  .app-screen.exit { opacity: 0; transform: translateX(-30px); }
+
+  /* Status bar */
+  .status-bar {
+    height: 44px; background: transparent;
+    display: flex; align-items: flex-end; justify-content: space-between;
+    padding: 0 20px 8px; flex-shrink: 0;
+  }
+  .status-time { font-size: 12px; font-weight: 700; color: var(--ink); }
+  .status-icons { display: flex; gap: 4px; align-items: center; }
+  .status-icons span { font-size: 12px; }
+
+  /* Screen 1 – Onboarding */
+  #screen-onboard { background: linear-gradient(160deg, #EEF2FF 0%, #F5F4F0 60%); }
+  .onboard-hero {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; padding: 20px;
+    gap: 12px;
+  }
+  .onboard-icon {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: var(--accent); display: flex; align-items: center;
+    justify-content: center; font-size: 32px;
+    box-shadow: 0 8px 24px rgba(79,70,229,0.3);
+  }
+  .onboard-title { font-size: 22px; font-weight: 700; text-align: center; color: var(--ink); }
+  .onboard-sub { font-size: 13px; color: var(--muted); text-align: center; line-height: 1.6; }
+  .onboard-footer { padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+
+  /* Screen 2 – Home */
+  #screen-home { background: var(--white); }
+  .app-header {
+    padding: 8px 20px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .app-header h2 { font-size: 20px; font-weight: 700; }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 700; }
+  .search-bar {
+    margin: 0 16px 16px;
+    height: 40px; border-radius: 12px;
+    background: var(--panel); border: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 14px; gap: 8px;
+    font-size: 13px; color: var(--muted);
+  }
+  .card-scroll { display: flex; gap: 10px; padding: 0 16px 16px; overflow-x: auto; }
+  .card-scroll::-webkit-scrollbar { display: none; }
+  .feat-card {
+    flex-shrink: 0; width: 140px; height: 80px; border-radius: 14px;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 10px; cursor: pointer; position: relative; overflow: hidden;
+    transition: transform 0.15s;
+  }
+  .feat-card:hover { transform: scale(1.02); }
+  .feat-card .card-tag { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 0.08em; }
+  .feat-card .card-name { font-size: 13px; font-weight: 700; color: white; }
+  .feat-card-1 { background: linear-gradient(135deg, #4F46E5, #7C3AED); }
+  .feat-card-2 { background: linear-gradient(135deg, #059669, #0D9488); }
+  .feat-card-3 { background: linear-gradient(135deg, #D97706, #DC2626); }
+  .section-title { font-size: 14px; font-weight: 700; padding: 0 16px; margin-bottom: 10px; }
+  .list-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; cursor: pointer; transition: background 0.15s;
+  }
+  .list-item:hover { background: var(--panel); }
+  .list-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .list-info { flex: 1; }
+  .list-name { font-size: 13px; font-weight: 600; }
+  .list-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .list-badge { font-size: 10px; font-weight: 700; background: var(--accent); color: white; padding: 2px 7px; border-radius: 10px; }
+
+  /* Screen 3 – Detail */
+  #screen-detail { background: var(--white); }
+  .detail-hero {
+    height: 180px;
+    background: linear-gradient(160deg, #4F46E5, #818CF8);
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 20px; position: relative;
+  }
+  .detail-back {
+    position: absolute; top: 54px; left: 16px;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;
+    font-size: 16px; cursor: pointer; color: white;
+  }
+  .detail-hero h3 { font-size: 20px; font-weight: 700; color: white; }
+  .detail-hero p { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 3px; }
+  .detail-body { padding: 16px; flex: 1; overflow-y: auto; }
+  .stat-row { display: flex; gap: 10px; margin-bottom: 16px; }
+  .stat-chip {
+    flex: 1; background: var(--panel); border-radius: 12px; padding: 12px;
+    text-align: center;
+  }
+  .stat-val { font-size: 18px; font-weight: 700; color: var(--accent); }
+  .stat-key { font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.06em; }
+  .progress-section { margin-bottom: 16px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; font-weight: 600; }
+  .progress-track { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-mid)); border-radius: 4px; transition: width 0.8s ease; }
+
+  /* Screen 4 – Feedback */
+  #screen-feedback { background: var(--white); }
+  .feedback-header { padding: 10px 20px 16px; }
+  .feedback-header h2 { font-size: 18px; font-weight: 700; }
+  .feedback-header p { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .rating-section { padding: 16px; }
+  .rating-label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+  .star-row { display: flex; gap: 6px; margin-bottom: 20px; }
+  .star { font-size: 28px; cursor: pointer; transition: transform 0.1s; filter: grayscale(1) opacity(0.3); }
+  .star.lit { filter: none; }
+  .star:hover { transform: scale(1.15); }
+  .tag-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .tag-chip {
+    font-size: 12px; font-weight: 600; padding: 7px 14px;
+    border-radius: 20px; border: 1.5px solid var(--border); cursor: pointer;
+    transition: all 0.15s; color: var(--muted);
+  }
+  .tag-chip.selected { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .textarea-mock {
+    width: 100%; height: 80px; border-radius: 12px;
+    border: 1.5px solid var(--border); background: var(--panel);
+    padding: 10px 12px; font-size: 12px; color: var(--muted); resize: none;
+    font-family: inherit; margin-bottom: 16px;
+    transition: border-color 0.15s;
+  }
+  .textarea-mock:focus { outline: none; border-color: var(--accent); }
+
+  /* Screen 5 – Success */
+  #screen-success {
+    background: linear-gradient(160deg, #ECFDF5 0%, #F5F4F0 60%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 32px 24px; text-align: center;
+  }
+  .success-icon {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: var(--success); display: flex; align-items: center; justify-content: center;
+    font-size: 36px; margin-bottom: 20px;
+    box-shadow: 0 8px 24px rgba(16,185,129,0.3);
+    animation: popIn 0.5s cubic-bezier(0.175,0.885,0.32,1.275) both;
+  }
+  @keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .success-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  .success-sub { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  /* Bottom Nav */
+  .bottom-nav {
+    display: flex; border-top: 1px solid var(--border);
+    padding: 8px 0 16px; flex-shrink: 0; background: var(--white);
+  }
+  .bn-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 3px; cursor: pointer; font-size: 10px; font-weight: 600;
+    color: var(--muted); transition: color 0.15s;
+  }
+  .bn-item.active { color: var(--accent); }
+  .bn-item span:first-child { font-size: 20px; }
+
+  /* Buttons */
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    height: 46px; border-radius: 14px; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: all 0.15s; border: none; width: 100%;
+    font-family: inherit;
+  }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #3730a3; transform: translateY(-1px); }
+  .btn-ghost { background: var(--panel); color: var(--ink); border: 1.5px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-success { background: var(--success); color: white; }
+
+  /* ── RIGHT PANEL ── */
+  .right-panel {
+    width: 300px; flex-shrink: 0;
+    background: var(--white); border-left: 1px solid var(--border);
+    overflow-y: auto; display: flex; flex-direction: column;
+  }
+  .panel-tabs { display: flex; border-bottom: 1px solid var(--border); }
+  .panel-tab {
+    flex: 1; text-align: center; padding: 12px 0;
+    font-size: 12px; font-weight: 700; color: var(--muted);
+    cursor: pointer; transition: all 0.15s; border-bottom: 2px solid transparent;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .panel-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .panel-content { padding: 16px; flex: 1; }
+  .panel-section { margin-bottom: 24px; }
+  .panel-section-title {
+    font-size: 10px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px;
+  }
+
+  /* Flow diagram */
+  .flow-node {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .flow-dot {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: 12px;
+    flex-shrink: 0; border: 2px solid transparent; transition: all 0.15s;
+  }
+  .flow-node.active .flow-dot { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+  .flow-node.done .flow-dot { opacity: 0.5; }
+  .flow-node-label { font-size: 12px; font-weight: 600; }
+  .flow-node.active .flow-node-label { color: var(--accent); }
+  .flow-arrow { font-size: 12px; color: var(--border); margin-left: 14px; margin-bottom: 4px; }
+
+  /* Properties */
+  .prop-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .prop-label { font-size: 12px; color: var(--muted); }
+  .prop-val { font-size: 12px; font-weight: 600; color: var(--ink); }
+  .prop-chip {
+    font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px;
+    background: var(--accent-light); color: var(--accent);
+  }
+  .prop-chip.green { background: #ECFDF5; color: var(--success); }
+  .prop-chip.yellow { background: #FFFBEB; color: var(--warning); }
+
+  /* Feedback metrics */
+  .metric-row { margin-bottom: 14px; }
+  .metric-head { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+  .metric-name { font-weight: 600; }
+  .metric-pct { color: var(--muted); }
+  .metric-bar { height: 6px; border-radius: 3px; background: var(--border); }
+  .metric-fill { height: 100%; border-radius: 3px; }
+
+  /* Testing checklist */
+  .check-item {
+    display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px;
+    padding: 10px; border-radius: 10px; border: 1.5px solid var(--border);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .check-item.checked { border-color: var(--success); background: #F0FDF4; }
+  .check-box {
+    width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--border);
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: white; transition: all 0.15s; margin-top: 1px;
+  }
+  .check-item.checked .check-box { background: var(--success); border-color: var(--success); }
+  .check-text { font-size: 12px; font-weight: 600; line-height: 1.4; }
+  .check-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* Submit section */
+  .submit-section { padding: 16px; border-top: 1px solid var(--border); }
+  .submit-progress { margin-bottom: 12px; }
+  .submit-pct { font-size: 24px; font-weight: 700; color: var(--accent); }
+  .submit-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .submit-track { height: 6px; background: var(--border); border-radius: 3px; margin-top: 8px; }
+  .submit-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-mid)); border-radius: 3px; transition: width 0.5s ease; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: white; padding: 10px 20px; border-radius: 20px;
+    font-size: 13px; font-weight: 600; opacity: 0; transition: all 0.3s;
+    white-space: nowrap; z-index: 999;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Transition toggle */
+  .trans-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .trans-btn {
+    font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 8px;
+    border: 1.5px solid var(--border); cursor: pointer; background: white;
+    color: var(--muted); transition: all 0.15s;
+  }
+  .trans-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+  /* Hotspot overlay */
+  .hotspot {
+    position: absolute; border-radius: 8px;
+    border: 2px dashed rgba(79,70,229,0.5);
+    background: rgba(79,70,229,0.06);
+    cursor: pointer; transition: background 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .hotspot:hover { background: rgba(79,70,229,0.12); }
+  .hotspot-label {
+    font-size: 9px; font-weight: 700; color: var(--accent);
+    background: white; padding: 2px 6px; border-radius: 4px;
+    border: 1px solid var(--accent-light); white-space: nowrap;
+  }
+
+  @media (max-width: 900px) {
+    .right-panel { display: none; }
+  }
+  @media (max-width: 680px) {
+    .sidebar { width: 200px; }
+    .phone-frame { width: 280px; height: 520px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav>
+  <div class="nav-logo"><span class="dot"></span> ProtoStudio</div>
+  <div class="nav-steps">
+    <div class="nav-step done" onclick="setPhase(0)">① Wireframe</div>
+    <div class="nav-step active" onclick="setPhase(1)">② Prototype</div>
+    <div class="nav-step" id="nav-test" onclick="setPhase(2)">③ Test</div>
+    <div class="nav-step" id="nav-submit" onclick="setPhase(3)">④ Submit</div>
+  </div>
+</nav>
+
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Screens (5)</div>
+
+      <div class="screen-thumb active" onclick="switchScreen('onboard', this)">
+        <div class="screen-thumb-inner">
+          <div class="thumb-rect"></div>
+          <div class="thumb-bar accent"></div>
+          <div class="thumb-bar short"></div>
+        </div>
+        <div class="screen-thumb-name">1 · Onboarding</div>
+      </div>
+
+      <div class="screen-thumb" onclick="switchScreen('home', this)">
+        <div class="screen-thumb-inner">
+          <div class="thumb-bar"></div>
+          <div class="thumb-bar accent"></div>
+          <div class="thumb-rect small"></div>
+          <div class="thumb-rect small"></div>
+        </div>
+        <div class="screen-thumb-name">2 · Home</div>
+      </div>
+
+      <div class="screen-thumb" onclick="switchScreen('detail', this)">
+        <div class="screen-thumb-inner">
+          <div class="thumb-rect" style="background:var(--accent-mid);opacity:0.4"></div>
+          <div class="thumb-bar"></div>
+          <div class="thumb-bar accent short"></div>
+        </div>
+        <div class="screen-thumb-name">3 · Detail</div>
+      </div>
+
+      <div class="screen-thumb" onclick="switchScreen('feedback', this)">
+        <div class="screen-thumb-inner">
+          <div class="thumb-bar"></div>
+          <div style="display:flex;gap:4px;margin:6px 0">
+            <div style="font-size:14px">⭐⭐⭐⭐⭐</div>
+          </div>
+          <div class="thumb-bar accent short"></div>
+        </div>
+        <div class="screen-thumb-name">4 · Feedback</div>
+      </div>
+
+      <div class="screen-thumb" onclick="switchScreen('success', this)">
+        <div class="screen-thumb-inner" style="display:flex;align-items:center;justify-content:center">
+          <div style="font-size:28px">✅</div>
+        </div>
+        <div class="screen-thumb-name">5 · Success</div>
+      </div>
+
+    </div>
+    <div class="add-screen-btn" onclick="toast('+ New screen added!')">+ Add Screen</div>
+  </aside>
+
+  <!-- CANVAS -->
+  <main class="canvas-area">
+    <div class="phone-wrapper">
+      <div class="phone-label" id="canvas-label">Screen 1 of 5 · Tap to interact</div>
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+
+          <!-- SCREEN 1: ONBOARDING -->
+          <div class="app-screen active" id="screen-onboard">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;padding:54px 20px 0">
+              <span class="status-time">9:41</span>
+              <div class="status-icons"><span>●●●</span><span>▲</span><span>🔋</span></div>
+            </div>
+            <div class="onboard-hero">
+              <div class="onboard-icon">🎨</div>
+              <div class="onboard-title">Design. Prototype. Ship.</div>
+              <div class="onboard-sub">Build interactive prototypes and get real user feedback in minutes — not days.</div>
+            </div>
+            <div class="onboard-footer">
+              <button class="btn btn-primary" onclick="navigateTo('home')">Get Started →</button>
+              <button class="btn btn-ghost" onclick="toast('Login flow coming soon!')">I already have an account</button>
+            </div>
+          </div>
+
+          <!-- SCREEN 2: HOME -->
+          <div class="app-screen" id="screen-home">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;padding:54px 20px 0">
+              <span class="status-time">9:41</span>
+              <div class="status-icons"><span>●●●</span><span>▲</span><span>🔋</span></div>
+            </div>
+            <div class="app-header">
+              <div>
+                <div style="font-size:12px;color:var(--muted);font-weight:600">Good morning,</div>
+                <h2>Alex 👋</h2>
+              </div>
+              <div class="avatar">AK</div>
+            </div>
+            <div class="search-bar">🔍 Search projects...</div>
+            <div class="card-scroll">
+              <div class="feat-card feat-card-1" onclick="navigateTo('detail')">
+                <div class="card-tag">Active</div>
+                <div class="card-name">Mobile App v2</div>
+              </div>
+              <div class="feat-card feat-card-2" onclick="toast('Opening Dashboard project…')">
+                <div class="card-tag">In Review</div>
+                <div class="card-name">Dashboard</div>
+              </div>
+              <div class="feat-card feat-card-3" onclick="toast('Opening Checkout project…')">
+                <div class="card-tag">Draft</div>
+                <div class="card-name">Checkout Flow</div>
+              </div>
+            </div>
+            <div class="section-title">Recent Activity</div>
+            <div class="list-item" onclick="navigateTo('detail')">
+              <div class="list-icon" style="background:#EEF2FF">🖼️</div>
+              <div class="list-info">
+                <div class="list-name">Prototype updated</div>
+                <div class="list-sub">Mobile App v2 · 2 min ago</div>
+              </div>
+              <div class="list-badge">New</div>
+            </div>
+            <div class="list-item" onclick="navigateTo('feedback')">
+              <div class="list-icon" style="background:#ECFDF5">💬</div>
+              <div class="list-info">
+                <div class="list-name">3 feedback responses</div>
+                <div class="list-sub">User Testing · 1h ago</div>
+              </div>
+            </div>
+            <div class="list-item" onclick="toast('Viewing share settings…')">
+              <div class="list-icon" style="background:#FFFBEB">🔗</div>
+              <div class="list-info">
+                <div class="list-name">Share link generated</div>
+                <div class="list-sub">Dashboard · Yesterday</div>
+              </div>
+            </div>
+            <div class="bottom-nav">
+              <div class="bn-item active"><span>🏠</span>Home</div>
+              <div class="bn-item" onclick="navigateTo('detail')"><span>📁</span>Projects</div>
+              <div class="bn-item" onclick="navigateTo('feedback')"><span>💬</span>Feedback</div>
+              <div class="bn-item" onclick="toast('Profile settings…')"><span>👤</span>Profile</div>
+            </div>
+          </div>
+
+          <!-- SCREEN 3: DETAIL -->
+          <div class="app-screen" id="screen-detail">
+            <div class="detail-hero">
+              <div style="height:44px"></div>
+              <div class="detail-back" onclick="navigateTo('home')">←</div>
+              <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Mobile App v2</div>
+              <h3>Prototype Overview</h3>
+              <p>Last edited 2 minutes ago</p>
+            </div>
+            <div class="detail-body">
+              <div class="stat-row">
+                <div class="stat-chip"><div class="stat-val">5</div><div class="stat-key">Screens</div></div>
+                <div class="stat-chip"><div class="stat-val">12</div><div class="stat-key">Hotspots</div></div>
+                <div class="stat-chip"><div class="stat-val">3</div><div class="stat-key">Testers</div></div>
+              </div>
+              <div class="progress-section">
+                <div class="progress-label"><span>Completion</span><span>72%</span></div>
+                <div class="progress-track"><div class="progress-fill" style="width:72%"></div></div>
+              </div>
+              <div class="progress-section">
+                <div class="progress-label"><span>Animations</span><span>5/8</span></div>
+                <div class="progress-track"><div class="progress-fill" style="width:62%;background:linear-gradient(90deg,var(--success),#34D399)"></div></div>
+              </div>
+              <div class="progress-section">
+                <div class="progress-label"><span>Flows Tested</span><span>2/4</span></div>
+                <div class="progress-track"><div class="progress-fill" style="width:50%;background:linear-gradient(90deg,var(--warning),#FCD34D)"></div></div>
+              </div>
+            </div>
+            <div style="padding:16px;display:flex;flex-direction:column;gap:8px;flex-shrink:0">
+              <button class="btn btn-primary" onclick="navigateTo('feedback')">Start User Testing →</button>
+              <button class="btn btn-ghost" onclick="toast('Share link copied!')">📎 Share Prototype</button>
+            </div>
+          </div>
+
+          <!-- SCREEN 4: FEEDBACK -->
+          <div class="app-screen" id="screen-feedback">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;padding:54px 20px 0">
+              <span class="status-time">9:41</span>
+              <div style="font-size:12px;cursor:pointer;color:var(--muted)" onclick="navigateTo('home')">✕</div>
+            </div>
+            <div class="feedback-header">
+              <h2>Rate this prototype</h2>
+              <p>Your feedback helps improve the design</p>
+            </div>
+            <div class="rating-section">
+              <div class="rating-label">Overall Experience</div>
+              <div class="star-row" id="star-row">
+                <div class="star" onclick="setRating(1)">⭐</div>
+                <div class="star" onclick="setRating(2)">⭐</div>
+                <div class="star" onclick="setRating(3)">⭐</div>
+                <div class="star" onclick="setRating(4)">⭐</div>
+                <div class="star" onclick="setRating(5)">⭐</div>
+              </div>
+              <div class="rating-label">What worked well?</div>
+              <div class="tag-grid">
+                <div class="tag-chip" onclick="toggleTag(this)">Navigation</div>
+                <div class="tag-chip" onclick="toggleTag(this)">Visual Design</div>
+                <div class="tag-chip" onclick="toggleTag(this)">Animations</div>
+                <div class="tag-chip" onclick="toggleTag(this)">Speed</div>
+                <div class="tag-chip" onclick="toggleTag(this)">Clarity</div>
+                <div class="tag-chip" onclick="toggleTag(this)">Layout</div>
+              </div>
+              <textarea class="textarea-mock" placeholder="Any other thoughts? (optional)"></textarea>
+              <button class="btn btn-primary" onclick="submitFeedback()">Submit Feedback →</button>
+            </div>
+          </div>
+
+          <!-- SCREEN 5: SUCCESS -->
+          <div class="app-screen" id="screen-success">
+            <div style="height:54px;flex-shrink:0"></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center">
+              <div class="success-icon">✅</div>
+              <div class="success-title">Feedback Received!</div>
+              <div class="success-sub" style="margin-top:8px;margin-bottom:24px">Your response has been saved. The design team will review your input to improve the prototype.</div>
+              <button class="btn btn-success" style="margin-bottom:10px" onclick="navigateTo('home')">Back to Projects</button>
+              <button class="btn btn-ghost" onclick="navigateTo('feedback')">Submit Another</button>
+            </div>
+          </div>
+
+        </div><!-- /phone-screen -->
+      </div><!-- /phone-frame -->
+    </div><!-- /phone-wrapper -->
+  </main>
+
+  <!-- RIGHT PANEL -->
+  <aside class="right-panel">
+    <div class="panel-tabs">
+      <div class="panel-tab active" onclick="switchTab(this,'flow')">Flow</div>
+      <div class="panel-tab" onclick="switchTab(this,'props')">Props</div>
+      <div class="panel-tab" onclick="switchTab(this,'testing')">Testing</div>
+    </div>
+
+    <!-- FLOW TAB -->
+    <div class="panel-content" id="tab-flow">
+      <div class="panel-section">
+        <div class="panel-section-title">Navigation Flow</div>
+        <div id="flow-nodes">
+          <div class="flow-node active" id="fn-onboard" onclick="switchScreen('onboard',null);updateFlow('onboard')">
+            <div class="flow-dot" style="background:#EEF2FF">🎨</div>
+            <span class="flow-node-label">Onboarding</span>
+          </div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-node" id="fn-home" onclick="switchScreen('home',null);updateFlow('home')">
+            <div class="flow-dot" style="background:#ECFDF5">🏠</div>
+            <span class="flow-node-label">Home</span>
+          </div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-node" id="fn-detail" onclick="switchScreen('detail',null);updateFlow('detail')">
+            <div class="flow-dot" style="background:#FFFBEB">📋</div>
+            <span class="flow-node-label">Detail</span>
+          </div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-node" id="fn-feedback" onclick="switchScreen('feedback',null);updateFlow('feedback')">
+            <div class="flow-dot" style="background:#FEE2E2">💬</div>
+            <span class="flow-node-label">Feedback</span>
+          </div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-node" id="fn-success" onclick="switchScreen('success',null);updateFlow('success')">
+            <div class="flow-dot" style="background:#ECFDF5">✅</div>
+            <span class="flow-node-label">Success</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-section-title">Transitions</div>
+        <div class="trans-row">
+          <div class="trans-btn active" onclick="setTrans(this,'Slide')">Slide →</div>
+          <div class="trans-btn" onclick="setTrans(this,'Fade')">Fade</div>
+          <div class="trans-btn" onclick="setTrans(this,'Push')">Push</div>
+          <div class="trans-btn" onclick="setTrans(this,'Scale')">Scale</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROPS TAB -->
+    <div class="panel-content" id="tab-props" style="display:none">
+      <div class="panel-section">
+        <div class="panel-section-title">Current Screen</div>
+        <div class="prop-row"><span class="prop-label">Name</span><span class="prop-val" id="prop-name">Onboarding</span></div>
+        <div class="prop-row"><span class="prop-label">Index</span><span class="prop-val" id="prop-index">1 / 5</span></div>
+        <div class="prop-row"><span class="prop-label">Status</span><span class="prop-chip green">Active</span></div>
+        <div class="prop-row"><span class="prop-label">Transition</span><span class="prop-chip" id="prop-trans">Slide</span></div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-section-title">Hotspot Actions</div>
+        <div class="prop-row"><span class="prop-label">Tap CTA</span><span class="prop-chip">→ Home</span></div>
+        <div class="prop-row"><span class="prop-label">Tap Login</span><span class="prop-chip yellow">Toast</span></div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-section-title">Animation</div>
+        <div class="prop-row"><span class="prop-label">Duration</span><span class="prop-val">300ms</span></div>
+        <div class="prop-row"><span class="prop-label">Easing</span><span class="prop-val">ease-out</span></div>
+      </div>
+    </div>
+
+    <!-- TESTING TAB -->
+    <div class="panel-content" id="tab-testing" style="display:none">
+      <div class="panel-section">
+        <div class="panel-section-title">User Testing Checklist</div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box">✓</div>
+          <div>
+            <div class="check-text">All screens connected</div>
+            <div class="check-sub">Navigation flows are complete</div>
+          </div>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box">✓</div>
+          <div>
+            <div class="check-text">Transitions defined</div>
+            <div class="check-sub">Slide animations set</div>
+          </div>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box">✓</div>
+          <div>
+            <div class="check-text">Hotspots visible</div>
+            <div class="check-sub">Interactive zones marked</div>
+          </div>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box">✓</div>
+          <div>
+            <div class="check-text">Share link generated</div>
+            <div class="check-sub">Ready to send to testers</div>
+          </div>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box">✓</div>
+          <div>
+            <div class="check-text">Feedback form active</div>
+            <div class="check-sub">Responses collecting</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-section-title">Feedback Summary</div>
+        <div class="metric-row">
+          <div class="metric-head"><span class="metric-name">Navigation</span><span class="metric-pct">87%</span></div>
+          <div class="metric-bar"><div class="metric-fill" style="width:87%;background:var(--success)"></div></div>
+        </div>
+        <div class="metric-row">
+          <div class="metric-head"><span class="metric-name">Visual Design</span><span class="metric-pct">92%</span></div>
+          <div class="metric-bar"><div class="metric-fill" style="width:92%;background:var(--accent)"></div></div>
+        </div>
+        <div class="metric-row">
+          <div class="metric-head"><span class="metric-name">Animations</span><span class="metric-pct">74%</span></div>
+          <div class="metric-bar"><div class="metric-fill" style="width:74%;background:var(--warning)"></div></div>
+        </div>
+        <div class="metric-row">
+          <div class="metric-head"><span class="metric-name">Clarity</span><span class="metric-pct">81%</span></div>
+          <div class="metric-bar"><div class="metric-fill" style="width:81%;background:var(--accent-mid)"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUBMIT SECTION -->
+    <div class="submit-section">
+      <div class="submit-progress">
+        <div class="submit-pct" id="submit-pct">72%</div>
+        <div class="submit-label">Prototype Complete</div>
+        <div class="submit-track"><div class="submit-fill" id="submit-fill" style="width:72%"></div></div>
+      </div>
+      <button class="btn btn-primary" onclick="submitWork()">Submit Work ✓</button>
+    </div>
+  </aside>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let currentScreen = 'onboard';
+  let currentTrans = 'Slide';
+  const screenNames = { onboard:'Onboarding', home:'Home', detail:'Detail View', feedback:'Feedback', success:'Success' };
+  const screenNums  = { onboard:1, home:2, detail:3, feedback:4, success:5 };
+  const propActions = {
+    onboard: [['Tap CTA','→ Home'],['Tap Login','Toast']],
+    home:    [['Tap Card','→ Detail'],['Tap Activity','→ Feedback']],
+    detail:  [['Back Button','→ Home'],['Start Testing','→ Feedback']],
+    feedback:[['Submit','→ Success'],['Close','→ Home']],
+    success: [['Back to Projects','→ Home'],['Submit Another','→ Feedback']]
+  };
+
+  function switchScreen(name, thumb) {
+    if (name === currentScreen) return;
+    const prev = document.getElementById('screen-' + currentScreen);
+    const next = document.getElementById('screen-' + name);
+    prev.classList.remove('active');
+    next.classList.add('active');
+    currentScreen = name;
+    document.getElementById('canvas-label').textContent = `Screen ${screenNums[name]} of 5 · Tap to interact`;
+    updateSidebarThumbs(thumb);
+    updateFlow(name);
+    updateProps(name);
+  }
+
+  function navigateTo(name) {
+    if (name === currentScreen) return;
+    const prev = document.getElementById('screen-' + currentScreen);
+    const next = document.getElementById('screen-' + name);
+    prev.classList.add('exit');
+    setTimeout(() => prev.classList.remove('exit','active'), 320);
+    next.classList.add('active');
+    currentScreen = name;
+    document.getElementById('canvas-label').textContent = `Screen ${screenNums[name]} of 5 · Tap to interact`;
+    updateSidebarThumbs(null);
+    updateFlow(name);
+    updateProps(name);
+  }
+
+  function updateSidebarThumbs(clickedThumb) {
+    document.querySelectorAll('.screen-thumb').forEach(t => t.classList.remove('active'));
+    if (clickedThumb) { clickedThumb.classList.add('active'); return; }
+    const order = ['onboard','home','detail','feedback','success'];
+    const idx = order.indexOf(currentScreen);
+    document.querySelectorAll('.screen-thumb')[idx]?.classList.add('active');
+  }
+
+  function updateFlow(name) {
+    document.querySelectorAll('.flow-node').forEach(n => n.classList.remove('active'));
+    const node = document.getElementById('fn-' + name);
+    if (node) node.classList.add('active');
+  }
+
+  function updateProps(name) {
+    const el = document.getElementById('prop-name');
+    const el2 = document.getElementById('prop-index');
+    if (el) el.textContent = screenNames[name];
+    if (el2) el2.textContent = `${screenNums[name]} / 5`;
+    // update hotspot rows
+  }
+
+  function switchTab(el, tabId) {
+    document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    ['flow','props','testing'].forEach(id => {
+      const t = document.getElementById('tab-' + id);
+      if (t) t.style.display = id === tabId ? '' : 'none';
+    });
+  }
+
+  function setTrans(el, name) {
+    document.querySelectorAll('.trans-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    currentTrans = name;
+    const pt = document.getElementById('prop-trans');
+    if (pt) pt.textContent = name;
+    toast('Transition set to ' + name);
+  }
+
+  let starRating = 0;
+  function setRating(n) {
+    starRating = n;
+    document.querySelectorAll('.star').forEach((s, i) => {
+      s.classList.toggle('lit', i < n);
+    });
+  }
+
+  function toggleTag(el) { el.classList.toggle('selected'); updateSubmitPct(); }
+
+  function submitFeedback() {
+    if (starRating === 0) { toast('Please select a rating first!'); return; }
+    navigateTo('success');
+    updateSubmitPct(88);
+  }
+
+  function toggleCheck(el) {
+    el.classList.toggle('checked');
+    const all = document.querySelectorAll('.check-item');
+    const done = document.querySelectorAll('.check-item.checked').length;
+    updateSubmitPct(Math.round(60 + (done / all.length) * 40));
+  }
+
+  function updateSubmitPct(pct) {
+    if (pct === undefined) return;
+    document.getElementById('submit-pct').textContent = pct + '%';
+    document.getElementById('submit-fill').style.width = pct + '%';
+  }
+
+  function submitWork() {
+    toast('🎉 Work submitted! Great job!');
+    document.querySelectorAll('.nav-step').forEach((s, i) => {
+      s.classList.remove('active');
+      if (i < 3) s.classList.add('done');
+      if (i === 3) { s.classList.add('active'); }
+    });
+    updateSubmitPct(100);
+  }
+
+  function setPhase(i) {
+    const msgs = ['Wireframe phase','Prototype phase','Testing phase','Submission phase'];
+    toast('→ ' + msgs[i]);
+  }
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // Init
+  updateFlow('onboard');
+</script>
+</body>
+</html>
